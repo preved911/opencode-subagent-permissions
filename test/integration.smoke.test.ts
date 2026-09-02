@@ -1,4 +1,4 @@
-import { spawn, type ChildProcess } from "node:child_process"
+import { spawn, spawnSync, type ChildProcess } from "node:child_process"
 import { fileURLToPath } from "node:url"
 import path from "node:path"
 import { afterAll, describe, expect, it } from "vitest"
@@ -16,6 +16,11 @@ import { afterAll, describe, expect, it } from "vitest"
  * resolves) requires a live model and is documented in README.md
  * ("Integration scenario").
  */
+
+const hasOpencodeBinary = (() => {
+  const probe = spawnSync("opencode", ["--version"], { stdio: "ignore" })
+  return !probe.error
+})()
 
 const fixtureDir = path.join(path.dirname(fileURLToPath(import.meta.url)), "fixtures", "project")
 
@@ -41,7 +46,7 @@ async function waitForHttp(url: string, timeoutMs: number): Promise<boolean> {
 }
 
 describe("integration: opencode serve with the plugin registered", () => {
-  it(
+  it.skipIf(!hasOpencodeBinary)(
     "boots the server, loads the plugin, and exposes the permission surface",
     async () => {
       const port = 45_000 + Math.floor(Math.random() * 10_000)
