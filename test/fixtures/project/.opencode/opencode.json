@@ -1,0 +1,11 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "plugin": [
+    [
+      "../../../../src/server.ts",
+      {
+        "toastFallback": true
+      }
+    ]
+  ]
+}
