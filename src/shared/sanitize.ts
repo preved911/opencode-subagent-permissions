@@ -33,7 +33,7 @@ const BYTES_MARKER = "[payload exceeded byte limit]"
  * markers, BigInt and other non-JSON values degrade to strings. Returns
  * `undefined` when even the fallback fails.
  */
-export function safeStringify(value: unknown, maxBytes: number): string | undefined {
+function safeStringify(value: unknown, maxBytes: number): string | undefined {
   const seen = new WeakSet<object>()
   let out: string
   try {

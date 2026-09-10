@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { compactSummary, safeStringify, sanitizeArgs } from "../src/shared/sanitize.ts"
+import { compactSummary, sanitizeArgs } from "../src/shared/sanitize.ts"
 import { SANITIZE_FAILED_MARKER } from "../src/shared/types.ts"
 
 describe("sanitizeArgs", () => {
@@ -77,21 +77,6 @@ describe("sanitizeArgs", () => {
   it("returns the failure marker when sanitization explodes", () => {
     const hostile = { get nested(): unknown { throw new Error("boom") } }
     expect(sanitizeArgs(hostile)).toBe(SANITIZE_FAILED_MARKER)
-  })
-})
-
-describe("safeStringify", () => {
-  it("survives cyclic input", () => {
-    const node: Record<string, unknown> = {}
-    node["loop"] = node
-    expect(safeStringify(node, 1024)).toContain("[circular]")
-  })
-
-  it("truncates to the byte budget", () => {
-    const out = safeStringify({ blob: "z".repeat(5000) }, 1000)
-    expect(out).toBeDefined()
-    expect((out as string).length).toBeLessThanOrEqual(1000)
-    expect((out as string).endsWith("…[truncated]")).toBe(true)
   })
 })
 

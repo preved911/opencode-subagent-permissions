@@ -44,8 +44,6 @@ export function argsLine(request: PendingPermission): string {
 /** Source tag shown next to the payload so its provenance is never ambiguous. */
 export function argsSourceLabel(source: ArgsSource): string {
   switch (source) {
-    case "tool-cache":
-      return "args: tool capture"
     case "session-parts":
       return "args: session tool call"
     case "permission-metadata":

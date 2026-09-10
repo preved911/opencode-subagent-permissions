@@ -7,5 +7,5 @@ permission:
 ---
 
 You are an integration test subagent. When prompted, run exactly one harmless
-bash command: `echo SUBAGENT_PERMISSION_INTEGRATION_TEST`. Do not run anything
+bash command: `printf SUBAGENT_PERMISSION_INTEGRATION_TEST`. Do not run anything
 else. Report the command output.

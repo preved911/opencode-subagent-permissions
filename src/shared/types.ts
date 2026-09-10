@@ -1,29 +1,22 @@
 /**
  * Shared types for the subagent permission overlay plugin.
  *
- * Shape of `PendingPermission` follows the design contract, adapted to the
- * exact fields exposed by the installed OpenCode SDK (1.18.25):
- *
- * - `Permission` (permission.ask hook input) carries a canonical request `id`,
- *   `sessionID`, `callID?`, permission `type`, `pattern?: string | string[]`
- *   and `metadata`.
- * - The v2 `PermissionRequest` (TUI state / `client.permission.list`) carries
- *   `id`, `sessionID`, `permission`, `patterns`, `metadata` and
- *   `tool?: { messageID; callID }`.
+ * `PendingPermission` follows the design contract, adapted to the exact
+ * fields of the v2 `PermissionRequest` (TUI state / `client.permission.list`):
+ * `id`, `sessionID`, `permission`, `patterns`, `metadata` and
+ * `tool?: { messageID; callID }`.
  */
 
 /**
  * Where displayed invocation arguments came from.
  *
- * - `tool-cache`: snapshot captured by the server plugin in
- *   `tool.execute.before` (fullest context).
  * - `session-parts`: tool input read from the session tool part by
  *   `(messageID, callID)` — the same source the native TUI permission prompt
  *   uses.
  * - `permission-metadata`: sanitized `permission.metadata` fallback.
  * - `unavailable`: nothing could be captured; UI must say so explicitly.
  */
-export type ArgsSource = "tool-cache" | "session-parts" | "permission-metadata" | "unavailable"
+export type ArgsSource = "session-parts" | "permission-metadata" | "unavailable"
 
 export type PendingPermission = {
   /** Canonical permission request ID (primary key). */

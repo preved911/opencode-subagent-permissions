@@ -3,11 +3,11 @@
 Persistent, sanitized subagent permission context for the OpenCode TUI.
 
 When a subagent (or a nested descendant) raises a permission request, the
-native OpenCode prompt may show little context: Bash prompts can omit command
-arguments, MCP prompts can omit most call context, and with concurrent
-subagents the requester can be unclear. This plugin renders a compact panel —
-outside the conversation transcript and the model context — that shows, for
-every pending request visible from your root session:
+native OpenCode prompt may show little context: with concurrent subagents the
+requester can be unclear, and tool arguments are not always visible. This
+plugin renders a compact panel — outside the conversation transcript and the
+model context — that shows, for every pending request visible from your root
+session:
 
 ```text
 Permission requests (2)
@@ -34,31 +34,18 @@ context), [#13715](https://github.com/anomalyco/opencode/issues/13715)
 
 ## Requirements
 
-- OpenCode **1.18.25 or newer** (the exact version the plugin's typed APIs were
-  verified against — see [IMPLEMENTATION.md](./IMPLEMENTATION.md)).
-- The TUI plugin needs no extra runtime installs: it resolves `solid-js` /
-  `@opentui/*` inside the OpenCode runtime.
+- OpenCode **1.18.25 or newer** with the typed TUI slot API.
+- No extra runtime installs: the plugin resolves `solid-js` / `@opentui/*`
+  inside the OpenCode runtime.
 
 ## Installation
-
-### Local file install (this repository)
 
 OpenCode must be **fully restarted** after installing or changing plugin files
 or configuration — configuration and plugin files load at startup.
 
-1. Copy/clone this repository somewhere permanent.
-2. Register both entrypoints.
+### Local file install (this repository)
 
-`<project>/.opencode/opencode.json` (server plugin):
-
-```json
-{
-  "$schema": "https://opencode.ai/config.json",
-  "plugin": ["/absolute/path/to/opencode-subagent-permissions/src/server.ts"]
-}
-```
-
-`<project>/.opencode/tui.json` (TUI overlay plugin):
+`<project>/.opencode/tui.json` (or `~/.config/opencode/tui.json` for global):
 
 ```json
 {
@@ -76,14 +63,14 @@ absolute paths to share one checkout across projects.
 opencode plugin add opencode-subagent-permissions
 ```
 
-and add the same name to both `opencode.json` (`plugin`) and `tui.json`
-(`plugin`) if your OpenCode version does not patch the configs for you.
+and add the package name to `tui.json` (`plugin`) if your OpenCode version
+does not patch the config for you.
 
 ## UI behavior
 
 - The panel appears in the **root/primary session view** while at least one
-  tracked request is pending for that session tree, and disappears when the
-  last request resolves.
+  pending request targets that session tree, and disappears when the last
+  request resolves.
 - Requests are ordered oldest-first; a newly arriving request never replaces
   an existing one; resolving one request removes only that request.
 - Invocation context is resolved in priority order:
@@ -96,14 +83,11 @@ and add the same name to both `opencode.json` (`plugin`) and `tui.json`
   back to the session title, falling back to `Unknown subagent`.
 - A command palette entry (`Subagent permission requests: details`) opens a
   scrollable dialog with the full sanitized payload for every pending request.
-- If the installed OpenCode version lacks the typed TUI slot API, the package
-  degrades to a single finite warning toast per request plus one clear startup
-  limitation notice — it never refreshes toasts to fake persistence.
 
 ## Security and redaction
 
-Permission arguments can contain credentials. Everything shown in the panel,
-the details dialog, and debug logs passes through the sanitizer first:
+Permission arguments can contain credentials. Everything shown in the panel
+and the details dialog passes through the sanitizer first:
 
 - object keys containing (case-insensitive) `authorization`, `cookie`,
   `password`, `passwd`, `secret`, `token`, `api_key`, `apikey`, `private_key`,
@@ -114,21 +98,18 @@ the details dialog, and debug logs passes through the sanitizer first:
 - nothing is written to disk by default; files are never read to build
   previews.
 
-Debug logging is opt-in: set `OPENCODE_SUBAGENT_PERMISSIONS_DEBUG=1` or pass
-`{ "debug": true }` plugin options. All logged fields are sanitized.
-
 ## Integration scenario (manual, requires a live model)
 
 The repository ships a fixture project for the full loop
 (`test/fixtures/project/`):
 
 1. `cd test/fixtures/project`
-2. Start the TUI: `opencode` (config already registers both plugin entries and
-   an `integration-subagent` agent whose Bash permission is `ask`).
+2. Start the TUI: `opencode` (config already registers the TUI plugin and an
+   `integration-subagent` agent whose Bash permission is `ask`).
 3. Prompt the primary session to spawn the `integration-subagent` subagent
    with the task "run your integration command".
-4. Before approving, verify the primary TUI shows the panel with the
-   subagent's name, `bash`, and `echo SUBAGENT_PERMISSION_INTEGRATION_TEST`.
+4. Before approving, verify the TUI shows the panel with the subagent's name,
+   `bash`, and the `printf SUBAGENT_PERMISSION_INTEGRATION_TEST` command.
 5. Verify the native permission prompt is still the only decision surface.
    Approve once — only that panel entry disappears. Repeat with rejection.
 6. Run two requests concurrently (two subagents) and resolve them in reverse
@@ -146,16 +127,16 @@ the plugin cannot display a request it never sees.
 ```sh
 npm install          # local devDependencies only (cache it wherever you like)
 npm run typecheck    # tsc --noEmit, includes the TSX against real @opentui types
-npm test             # vitest: unit + UI-logic + server-plugin + integration smoke
+npm test             # vitest: unit + UI-logic + integration smoke
 ```
 
-The integration smoke test spawns a real `opencode serve` with the fixture
-config and asserts the plugin loads inside the OpenCode runtime.
+The integration smoke test spawns a real `opencode serve` and asserts the
+`/permission` data surface the panel depends on. The full TUI scenario needs a
+live model and is documented above.
 
 ## Known limitations
 
-- OpenCode versions without the typed TUI slot API get only the toast
-  fallback (a single finite warning per request) — by design, not a bug.
+- OpenCode versions without the typed TUI slot API cannot render the panel.
 - Nested descendants may not deliver permission events in some affected
   OpenCode versions; the plugin shows what OpenCode actually delivers and
   labels anything missing.
