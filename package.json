@@ -1,6 +1,6 @@
 {
   "name": "opencode-subagent-permissions",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "OpenCode plugin: persistent, sanitized subagent permission context overlay for the primary TUI session view",
   "type": "module",
   "license": "MIT",
@@ -24,24 +24,17 @@
     "test": "vitest run",
     "test:watch": "vitest"
   },
-  "peerDependencies": {
-    "@opencode-ai/plugin": ">=1.18.25 <2",
-    "@opentui/core": ">=0.4.5",
-    "@opentui/solid": ">=0.4.5"
+  "dependencies": {
+    "@opentui/core": "0.4.5",
+    "@opentui/solid": "0.4.5",
+    "solid-js": "^1.9.12"
   },
-  "peerDependenciesMeta": {
-    "@opentui/core": {
-      "optional": true
-    },
-    "@opentui/solid": {
-      "optional": true
-    }
+  "peerDependencies": {
+    "@opencode-ai/plugin": ">=1.18.25 <2"
   },
   "devDependencies": {
     "@opencode-ai/plugin": "1.18.25",
-    "@opentui/core": "0.4.5",
     "@opentui/keymap": "0.4.5",
-    "@opentui/solid": "0.4.5",
     "@types/node": "24.12.2",
     "typescript": "5.8.2",
     "vitest": "3.2.4"
