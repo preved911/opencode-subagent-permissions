@@ -44,9 +44,54 @@ describe("panel rendering", () => {
     expect(originLabel(request)).toBe("Search the codebase")
   })
 
-  it("shows the explicit unavailable marker when args are missing", () => {
-    const request = makeRequest({ sanitizedArgs: undefined, argsSource: "unavailable" })
+  it("shows the explicit unavailable marker when nothing concrete is known", () => {
+    const request = makeRequest({ patterns: [], sanitizedArgs: undefined, argsSource: "unavailable" })
     expect(argsLine(request)).toBe("Arguments unavailable from OpenCode")
+  })
+
+  it("falls back to the matched bash pattern when args are unavailable", () => {
+    const request = makeRequest({ sanitizedArgs: undefined, argsSource: "unavailable" })
+    expect(argsLine(request)).toBe("rg *")
+  })
+
+  it("shows the skill name from patterns when args are unavailable", () => {
+    const request = makeRequest({
+      permission: "skill",
+      patterns: ["debugging"],
+      sanitizedArgs: undefined,
+      argsSource: "unavailable",
+    })
+    expect(argsLine(request)).toBe("debugging")
+  })
+
+  it("shows the subagent type from patterns for task asks", () => {
+    const request = makeRequest({
+      permission: "task",
+      patterns: ["explore"],
+      sanitizedArgs: undefined,
+      argsSource: "unavailable",
+    })
+    expect(argsLine(request)).toBe("explore")
+  })
+
+  it("keeps the unavailable marker for wildcard-only patterns", () => {
+    const request = makeRequest({
+      permission: "skill",
+      patterns: ["*"],
+      sanitizedArgs: undefined,
+      argsSource: "unavailable",
+    })
+    expect(argsLine(request)).toBe("Arguments unavailable from OpenCode")
+  })
+
+  it("prefers the payload over pattern names when args are available", () => {
+    const request = makeRequest({
+      permission: "skill",
+      patterns: ["debugging"],
+      sanitizedArgs: { command: "rg x" },
+      argsSource: "session-parts",
+    })
+    expect(argsLine(request)).toContain("rg x")
   })
 
   it("marks the payload source in the compact row", () => {

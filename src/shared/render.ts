@@ -33,12 +33,25 @@ export function toolLabel(request: PendingPermission): string {
 /** Compact one-line payload summary, honestly labeled when unavailable. */
 export function argsLine(request: PendingPermission): string {
   if (request.argsSource === "unavailable" || request.sanitizedArgs === undefined) {
+    const named = namedPatterns(request.patterns)
+    if (named.length > 0) return named.join(", ")
     return ARGS_UNAVAILABLE_MARKER
   }
   if (request.sanitizedArgs === SANITIZE_FAILED_MARKER) {
     return `${request.permission}: ${ARGS_UNAVAILABLE_MARKER}`
   }
   return compactSummary(request.sanitizedArgs)
+}
+
+const CATCH_ALL_PATTERNS = new Set(["*", "**"])
+
+/**
+ * Concrete resource names carried by pattern-gated permissions (skill asks
+ * carry `patterns: [skillName]` with empty metadata, task asks carry the
+ * subagent type). Wildcard catch-alls carry no essence and are dropped.
+ */
+function namedPatterns(patterns: readonly string[]): readonly string[] {
+  return patterns.filter((pattern) => !CATCH_ALL_PATTERNS.has(pattern))
 }
 
 /** Source tag shown next to the payload so its provenance is never ambiguous. */
