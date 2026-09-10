@@ -4,6 +4,10 @@
   "description": "OpenCode plugin: persistent, sanitized subagent permission context overlay for the primary TUI session view",
   "type": "module",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/preved911/opencode-subagent-permissions.git"
+  },
   "exports": {
     "./tui": "./src/tui.tsx"
   },
