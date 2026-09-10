@@ -21,7 +21,7 @@ import { createArgsLookup, selectVisibleRequests, toPendingRequests } from "./sh
  *
  * Data sources (see IMPLEMENTATION.md for the exact APIs):
  * - pending requests: `client.permission.list()` (authoritative query),
- *   refreshed on `permission.updated` / `permission.replied` /
+ *   refreshed on `permission.asked` / `permission.replied` /
  *   `session.deleted` TUI events,
  * - tool arguments: session tool parts via `state.part(messageID)` keyed by
  *   `tool.callID` — the same source the native permission prompt uses,
@@ -95,10 +95,10 @@ const tui: TuiPlugin = async (api) => {
       const viewed = viewedSession()
       if (!viewed) return []
       const all = pendingRequests() ?? []
-      const visible = selectVisibleRequests(all, viewed, chainOf)
-      // Kick off (or reuse) async origin resolution for every visible request;
-      // `bump` recomputes this memo when a chain resolves.
-      for (const request of visible) {
+      // Resolution must run for every pending request BEFORE visibility
+      // filtering: visibility requires a resolved chain, so resolving only
+      // visible requests deadlocks subagent requests forever.
+      for (const request of all) {
         if (resolver.cached(request.sessionID) === undefined) {
           void resolver
             .resolve(request.sessionID)
@@ -106,6 +106,7 @@ const tui: TuiPlugin = async (api) => {
             .catch(() => bumpVersion())
         }
       }
+      const visible = selectVisibleRequests(all, viewed, chainOf)
       const pending = toPendingRequests(visible, { argsOf, chainOf, originOf, now: () => Date.now() }, firstSeen)
       // Keep first-seen times bounded: forget resolved request IDs.
       const alive = new Set(pending.map((request) => request.requestID))
