@@ -1,10 +1,17 @@
 /** @jsxImportSource @opentui/solid */
 import { For, Show, createMemo, createResource, createRoot, createSignal } from "solid-js"
 import type { JSX } from "@opentui/solid"
-import type { TuiCommand, TuiDialogStack, TuiPlugin, TuiPluginApi, TuiPluginModule } from "@opencode-ai/plugin/tui"
+import type {
+  TuiCommand,
+  TuiDialogSelectOption,
+  TuiDialogStack,
+  TuiPlugin,
+  TuiPluginApi,
+  TuiPluginModule,
+} from "@opencode-ai/plugin/tui"
 import type { PermissionRequest } from "@opencode-ai/sdk/v2"
 import { SessionResolver, type SessionLike } from "./shared/session-resolver.ts"
-import { compactRows, detailLines, header } from "./shared/render.ts"
+import { compactRows, detailLines, essenceLine, header, originLabel, toolLabel } from "./shared/render.ts"
 import { createArgsLookup, nativeDialogLacksEssence, selectVisibleRequests, toPendingRequests } from "./shared/panel.ts"
 
 /**
@@ -29,6 +36,7 @@ import { createArgsLookup, nativeDialogLacksEssence, selectVisibleRequests, toPe
  */
 
 const DETAILS_COMMAND = "subagent_permissions.details"
+const MANAGE_COMMAND = "subagent_permissions.manage"
 
 function routeSessionID(api: TuiPluginApi): string | undefined {
   const current = api.route.current
@@ -131,7 +139,29 @@ const tui: TuiPlugin = async (api) => {
       return pending.sort((a, b) => a.createdAt - b.createdAt)
     })
 
-    return { displayRequests }
+    // The manage dialog lists every pending request in the viewed tree,
+    // including types the native dialog renders fully: cleanup applies to all.
+    const manageableRequests = createMemo(() => {
+      const viewed = viewedSession()
+      if (!viewed) return []
+      const all = (pendingRequests() ?? []).filter(
+        (request) => !deletedSessions.has(request.sessionID),
+      )
+      for (const request of all) {
+        if (resolver.cached(request.sessionID) === undefined) {
+          void resolver
+            .resolve(request.sessionID)
+            .then(() => bumpVersion())
+            .catch(() => bumpVersion())
+        }
+      }
+      const visible = selectVisibleRequests(all, viewed, chainOf)
+      return toPendingRequests(visible, { argsOf, chainOf, originOf, now: () => Date.now() }, firstSeen).sort(
+        (a, b) => a.createdAt - b.createdAt,
+      )
+    })
+
+    return { displayRequests, manageableRequests }
   })
 
   const currentDetailLines = (): string[] => {
@@ -165,6 +195,40 @@ const tui: TuiPlugin = async (api) => {
                   <For each={lines}>{(line) => <text fg={api.theme.current.text}>{line}</text>}</For>
                 </box>
               </scrollbox>
+            )
+          })
+        },
+      },
+      {
+        title: "Subagent permission requests: manage",
+        value: MANAGE_COMMAND,
+        description: "Review and reject pending permission requests",
+        category: "Permissions",
+        onSelect: (dialog: TuiDialogStack | undefined) => {
+          if (!dialog) return
+          dialog.setSize("large")
+          dialog.replace(() => {
+            const requests = panel.manageableRequests()
+            const options: TuiDialogSelectOption<string>[] = requests.map((request) => ({
+              title: `${originLabel(request)} · ${toolLabel(request)}`,
+              description: essenceLine(request),
+              value: request.requestID,
+            }))
+            if (options.length === 0) {
+              options.push({ title: "No pending permission requests.", value: "none" })
+            }
+            return (
+              <api.ui.DialogSelect
+                title="Pending permission requests — select to reject"
+                options={options}
+                onSelect={(option) => {
+                  if (option.value === "none") return
+                  void api.client.permission
+                    .reply({ requestID: option.value, reply: "reject" })
+                    .then(() => dialog.clear())
+                    .catch(() => dialog.clear())
+                }}
+              />
             )
           })
         },

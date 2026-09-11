@@ -24,6 +24,13 @@ Rows show the requester, the tool, and the request essence in plain form
 payload and the matched patterns are available in the details dialog
 (`Subagent permission requests: details` in the command palette).
 
+A second palette command, `Subagent permission requests: manage`, lists every
+pending request in the viewed session tree (all types, including ones the
+widget does not duplicate) and rejects the selected one. This is the cleanup
+surface for orphaned requests — pending requests whose run is gone and whose
+native dialog will never appear (for example, subagents spawned into other
+worktrees and later aborted). Rejecting removes the request from the core.
+
 The widget lists only requests the native dialog renders **without** their
 essence (the generic "Call tool X" fallback: skills, MCP tools, custom
 permission types). Types the native dialog already renders fully — bash
