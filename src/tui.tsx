@@ -10,9 +10,9 @@ import { createArgsLookup, selectVisibleRequests, toPendingRequests } from "./sh
 /**
  * TUI half of the subagent permission overlay plugin.
  *
- * Renders a persistent panel of pending subagent permission requests below the
- * active session route (`app_bottom` slot — additive layout flow, outside the
- * conversation transcript). The panel:
+ * Renders a persistent panel of pending subagent permission requests in the
+ * right sidebar (`sidebar_content` slot, plugin order -100 — first widget).
+ * The panel:
  * - shows requester, tool and sanitized invocation context,
  * - stays visible until the native permission request is resolved
  *   (`permission.replied` refreshes the authoritative pending list),
@@ -159,8 +159,9 @@ const tui: TuiPlugin = async (api) => {
   })
 
   api.slots.register({
+    order: -100,
     slots: {
-      app_bottom(): JSX.Element {
+      sidebar_content(): JSX.Element {
         return (
           <Show when={panel.displayRequests().length > 0}>
             <box flexDirection="column" flexShrink={0} paddingLeft={1}>
@@ -168,9 +169,6 @@ const tui: TuiPlugin = async (api) => {
               <For each={compactRows(panel.displayRequests())}>
                 {(line) => <text fg={api.theme.current.text}>{line}</text>}
               </For>
-              <text fg={api.theme.current.textMuted}>
-                {"Decide in the native permission dialog — this panel is informational only."}
-              </text>
             </box>
           </Show>
         )

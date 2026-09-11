@@ -1,10 +1,8 @@
 import { compactSummary } from "./sanitize.ts"
 import {
   ARGS_UNAVAILABLE_MARKER,
-  NATIVE_DECISION_NOTE,
   SANITIZE_FAILED_MARKER,
   UNKNOWN_ORIGIN_LABEL,
-  type ArgsSource,
   type PendingPermission,
 } from "./types.ts"
 
@@ -30,17 +28,57 @@ export function toolLabel(request: PendingPermission): string {
   return request.toolName ?? request.permission
 }
 
-/** Compact one-line payload summary, honestly labeled when unavailable. */
-export function argsLine(request: PendingPermission): string {
-  if (request.argsSource === "unavailable" || request.sanitizedArgs === undefined) {
-    const named = namedPatterns(request.patterns)
-    if (named.length > 0) return named.join(", ")
-    return ARGS_UNAVAILABLE_MARKER
+/** Object keys whose scalar value is the request essence in plain form. */
+const ESSENCE_KEYS: readonly string[] = [
+  "command",
+  "name",
+  "url",
+  "query",
+  "pattern",
+  "filepath",
+  "path",
+  "file",
+  "description",
+]
+
+/**
+ * Plain-text essence of the request payload: the value of the first known
+ * essence key, a lone field's value, or undefined (JSON fallback upstream).
+ * Tool inputs are single-purpose, so JSON is almost never the readable form.
+ */
+function essenceOfPayload(sanitizedArgs: unknown): string | undefined {
+  if (typeof sanitizedArgs === "string") return sanitizedArgs
+  if (typeof sanitizedArgs !== "object" || sanitizedArgs === null) return undefined
+  const record = sanitizedArgs as { readonly [key: string]: unknown }
+  for (const key of ESSENCE_KEYS) {
+    const value = record[key]
+    if (typeof value === "string" && value.trim().length > 0) return value
+    if (typeof value === "number" || typeof value === "boolean") return String(value)
   }
-  if (request.sanitizedArgs === SANITIZE_FAILED_MARKER) {
-    return `${request.permission}: ${ARGS_UNAVAILABLE_MARKER}`
+  const keys = Object.keys(record)
+  if (keys.length === 1) {
+    const value = record[keys[0] as string]
+    if (typeof value === "string" && value.trim().length > 0) return value
   }
-  return compactSummary(request.sanitizedArgs)
+  return undefined
+}
+
+/**
+ * One-line essence for the panel row: plain payload value when available,
+ * concrete pattern names (skill/task asks) otherwise, explicit marker last.
+ */
+export function essenceLine(request: PendingPermission): string {
+  if (request.argsSource !== "unavailable" && request.sanitizedArgs !== undefined) {
+    const plain = essenceOfPayload(request.sanitizedArgs)
+    if (plain !== undefined) return plain
+    if (request.sanitizedArgs === SANITIZE_FAILED_MARKER) {
+      return `${request.permission}: ${ARGS_UNAVAILABLE_MARKER}`
+    }
+    return compactSummary(request.sanitizedArgs)
+  }
+  const named = namedPatterns(request.patterns)
+  if (named.length > 0) return named.join(", ")
+  return ARGS_UNAVAILABLE_MARKER
 }
 
 const CATCH_ALL_PATTERNS = new Set(["*", "**"])
@@ -52,18 +90,6 @@ const CATCH_ALL_PATTERNS = new Set(["*", "**"])
  */
 function namedPatterns(patterns: readonly string[]): readonly string[] {
   return patterns.filter((pattern) => !CATCH_ALL_PATTERNS.has(pattern))
-}
-
-/** Source tag shown next to the payload so its provenance is never ambiguous. */
-export function argsSourceLabel(source: ArgsSource): string {
-  switch (source) {
-    case "session-parts":
-      return "args: session tool call"
-    case "permission-metadata":
-      return "args: permission metadata"
-    case "unavailable":
-      return ""
-  }
 }
 
 function truncateLine(text: string, limit = COMPACT_LINE_LIMIT): string {
@@ -82,23 +108,20 @@ export function header(count: number): string {
  * ```
  * 1  @explore · bash
  *    rg "permission.ask" packages/opencode
- *    Waiting for native Allow / Always / Reject
  * ```
  */
 export function compactRows(requests: readonly PendingPermission[]): string[] {
   const rows: string[] = []
   requests.forEach((request, index) => {
     rows.push(truncateLine(`${index + 1}  ${originLabel(request)} · ${toolLabel(request)}`))
-    rows.push(truncateLine(`   ${argsLine(request)}`))
-    const source = argsSourceLabel(request.argsSource)
-    rows.push(truncateLine(`   ${NATIVE_DECISION_NOTE}${source ? ` (${source})` : ""}`))
+    rows.push(truncateLine(`   ${essenceLine(request)}`))
   })
   return rows
 }
 
 /**
- * Full detail lines for the scrollable dialog: identity fields plus the
- * sanitized payload, line-wrapped to stay inside the dialog.
+ * Full detail lines for the scrollable dialog: identity header plus the two
+ * fields with review value — matched patterns and the sanitized payload.
  */
 export function detailLines(request: PendingPermission): string[] {
   const lines: string[] = []
@@ -109,13 +132,7 @@ export function detailLines(request: PendingPermission): string[] {
     }
   }
   lines.push(truncateLine(`${originLabel(request)} · ${toolLabel(request)}`, COMPACT_LINE_LIMIT * 2))
-  wrap(`permission: ${request.permission}`, "  ")
-  wrap(`request: ${request.requestID}`, "  ")
-  wrap(`session: ${request.requestSessionID}`, "  ")
-  wrap(`root: ${request.rootSessionID ?? "unresolved"}`, "  ")
-  if (request.callID) wrap(`call: ${request.callID}`, "  ")
   if (request.patterns.length > 0) wrap(`patterns: ${request.patterns.join(", ")}`, "  ")
-  wrap(`payload source: ${request.argsSource}`, "  ")
   if (request.argsSource === "unavailable" || request.sanitizedArgs === undefined) {
     lines.push(`  ${ARGS_UNAVAILABLE_MARKER}`)
   } else {

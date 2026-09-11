@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { argsLine, compactRows, detailLines, header, originLabel, toolLabel } from "../src/shared/render.ts"
+import { essenceLine, compactRows, detailLines, header, originLabel, toolLabel } from "../src/shared/render.ts"
 import type { PendingPermission } from "../src/shared/types.ts"
 
 function makeRequest(overrides: Partial<PendingPermission> = {}): PendingPermission {
@@ -30,7 +30,6 @@ describe("panel rendering", () => {
     expect(rows[0]).toBe("1  @explore · bash")
     expect(rows[1]).toContain("rg")
     expect(rows[1]).toContain("permission.ask")
-    expect(rows[2]).toContain("Waiting for native Allow / Always / Reject")
   })
 
   it("falls back to Unknown subagent when the origin is unresolved", () => {
@@ -46,12 +45,12 @@ describe("panel rendering", () => {
 
   it("shows the explicit unavailable marker when nothing concrete is known", () => {
     const request = makeRequest({ patterns: [], sanitizedArgs: undefined, argsSource: "unavailable" })
-    expect(argsLine(request)).toBe("Arguments unavailable from OpenCode")
+    expect(essenceLine(request)).toBe("Arguments unavailable from OpenCode")
   })
 
   it("falls back to the matched bash pattern when args are unavailable", () => {
     const request = makeRequest({ sanitizedArgs: undefined, argsSource: "unavailable" })
-    expect(argsLine(request)).toBe("rg *")
+    expect(essenceLine(request)).toBe("rg *")
   })
 
   it("shows the skill name from patterns when args are unavailable", () => {
@@ -61,7 +60,7 @@ describe("panel rendering", () => {
       sanitizedArgs: undefined,
       argsSource: "unavailable",
     })
-    expect(argsLine(request)).toBe("debugging")
+    expect(essenceLine(request)).toBe("debugging")
   })
 
   it("shows the subagent type from patterns for task asks", () => {
@@ -71,7 +70,7 @@ describe("panel rendering", () => {
       sanitizedArgs: undefined,
       argsSource: "unavailable",
     })
-    expect(argsLine(request)).toBe("explore")
+    expect(essenceLine(request)).toBe("explore")
   })
 
   it("keeps the unavailable marker for wildcard-only patterns", () => {
@@ -81,7 +80,7 @@ describe("panel rendering", () => {
       sanitizedArgs: undefined,
       argsSource: "unavailable",
     })
-    expect(argsLine(request)).toBe("Arguments unavailable from OpenCode")
+    expect(essenceLine(request)).toBe("Arguments unavailable from OpenCode")
   })
 
   it("prefers the payload over pattern names when args are available", () => {
@@ -91,12 +90,29 @@ describe("panel rendering", () => {
       sanitizedArgs: { command: "rg x" },
       argsSource: "session-parts",
     })
-    expect(argsLine(request)).toContain("rg x")
+    expect(essenceLine(request)).toContain("rg x")
   })
 
-  it("marks the payload source in the compact row", () => {
-    const rows = compactRows([makeRequest()])
-    expect(rows[2]).toContain("args: session tool call")
+  it("renders the plain command value instead of JSON", () => {
+    const request = makeRequest({ sanitizedArgs: { command: "rg x" }, argsSource: "session-parts" })
+    expect(essenceLine(request)).toBe("rg x")
+  })
+
+  it("renders the plain skill name from the tool input", () => {
+    const request = makeRequest({
+      permission: "skill",
+      sanitizedArgs: { name: "perm-test-skill" },
+      argsSource: "session-parts",
+    })
+    expect(essenceLine(request)).toBe("perm-test-skill")
+  })
+
+  it("falls back to compact JSON for multi-field payloads", () => {
+    const request = makeRequest({
+      sanitizedArgs: { a: "1", b: "2" },
+      argsSource: "session-parts",
+    })
+    expect(essenceLine(request)).toContain('"a"')
   })
 
   it("truncates long payloads in the compact view", () => {
@@ -107,7 +123,6 @@ describe("panel rendering", () => {
     for (const row of rows) {
       expect(row.length).toBeLessThanOrEqual(97)
     }
-    expect(argsLine(request).endsWith("…[truncated]")).toBe(true)
   })
 
   it("keeps multiple requests independently numbered in arrival order", () => {
@@ -116,7 +131,7 @@ describe("panel rendering", () => {
       makeRequest({ requestID: "b", permission: "context7.query-docs", originAgent: "librarian" }),
     ])
     expect(rows[0]).toBe("1  @explore · bash")
-    expect(rows[3]).toBe("2  @librarian · context7.query-docs")
+    expect(rows[2]).toBe("2  @librarian · context7.query-docs")
   })
 
   it("resolving one request leaves the other visible", () => {
@@ -138,17 +153,17 @@ describe("panel rendering", () => {
     expect(toolLabel(request)).toBe("custom-runner")
   })
 
-  it("renders full detail lines with identity fields and payload", () => {
+  it("renders trimmed detail lines: header, patterns, payload", () => {
     const lines = detailLines(makeRequest())
     const joined = lines.join("\n")
     expect(joined).toContain("@explore · bash")
-    expect(joined).toContain("permission: bash")
-    expect(joined).toContain("request: perm_1")
-    expect(joined).toContain("session: ses_child")
-    expect(joined).toContain("root: ses_root")
-    expect(joined).toContain("call: call_1")
-    expect(joined).toContain("payload source: session-parts")
+    expect(joined).toContain("patterns: rg *")
     expect(joined).toContain("payload:")
+    expect(joined).not.toContain("request:")
+    expect(joined).not.toContain("session:")
+    expect(joined).not.toContain("root:")
+    expect(joined).not.toContain("call:")
+    expect(joined).not.toContain("payload source:")
   })
 
   it("renders unavailable args in details without inventing context", () => {

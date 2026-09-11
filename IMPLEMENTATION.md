@@ -43,11 +43,13 @@ full (`server.ts`, tracker, invocation cache, `./server` export).
 ### Registration APIs (`@opencode-ai/plugin/tui`)
 
 - `TuiPluginModule` default export `{ id, tui }`; `tui: (api, options, meta) => Promise<void>`.
-- `api.slots.register({ slots: { app_bottom() { … } } })` — `app_bottom` is
-  rendered by the host in normal layout flow below the active route
-  (`packages/tui/src/app.tsx`), i.e. additive and outside the transcript.
-  `session_prompt` was rejected deliberately: the host renders it with
-  `mode="replace"`, so a plugin there would replace the native prompt.
+- `api.slots.register({ order: -100, slots: { sidebar_content() { … } } })` —
+  `sidebar_content` is rendered inside the right sidebar's scrollable content
+  (`packages/tui/src/routes/session/sidebar.tsx`). The plugin-level `order`
+  sorts slot contributions ascending (`plugin.order ?? 0`, ties by
+  registration order); -100 places the widget above unordered sidebar plugins
+  such as quota. `session_prompt` was rejected deliberately: the host renders
+  it with `mode="replace"`, so a plugin there would replace the native prompt.
 - `api.event.on(type, handler)` — TUI event bus: `permission.asked`,
   `permission.replied`, `session.deleted` bump the panel's reactive version.
   The TUI runtime tracks and disposes these subscriptions.
@@ -103,7 +105,7 @@ resolved IDs to stay bounded.
    authoritative stores (`/permission`, session parts, v2 session API). The
    previously attempted server-side hook/event tracking relied on APIs the
    runtime never provides (see above).
-2. **`session_prompt` rejected** in favor of `app_bottom` (additive) —
+2. **`session_prompt` rejected** in favor of `sidebar_content` (additive) —
    registering `session_prompt` replaces the native prompt (host renders it
    with `mode="replace"`).
 3. **The authoritative pending-permissions query exists** (`/permission`), so

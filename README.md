@@ -5,23 +5,24 @@ Persistent, sanitized subagent permission context for the OpenCode TUI.
 When a subagent (or a nested descendant) raises a permission request, the
 native OpenCode prompt may show little context: with concurrent subagents the
 requester can be unclear, and tool arguments are not always visible. This
-plugin renders a compact panel — outside the conversation transcript and the
-model context — that shows, for every pending request visible from your root
-session:
+plugin renders a compact widget in the right sidebar (first widget, above
+other sidebar plugins) that shows, for every pending request visible from
+your root session:
 
 ```text
 Permission requests (2)
 
 1  @explore · bash
-   {"command":"rg \"permission.ask\" packages/opencode"}
-   Waiting for native Allow / Always / Reject (args: session tool call)
+   rg "permission.ask" packages/opencode
 
 2  @librarian · context7.query-docs
-   {"libraryId":"/anomalyco/opencode","query":"…"}
-   Waiting for native Allow / Always / Reject (args: session tool call)
-
-Decide in the native permission dialog — this panel is informational only.
+   /anomalyco/opencode
 ```
+
+Rows show the requester, the tool, and the request essence in plain form
+(command text, skill name, matched pattern) — not JSON. The full sanitized
+payload and the matched patterns are available in the details dialog
+(`Subagent permission requests: details` in the command palette).
 
 The panel is informational only. The native OpenCode permission dialog remains
 the only decision surface; the plugin never approves, denies, or rewrites any

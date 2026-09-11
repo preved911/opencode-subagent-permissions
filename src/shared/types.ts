@@ -65,9 +65,6 @@ export const SANITIZE_FAILED_MARKER = "[Arguments unavailable from OpenCode]"
 /** Marker rendered when nothing captured the invocation arguments. */
 export const ARGS_UNAVAILABLE_MARKER = "Arguments unavailable from OpenCode"
 
-/** Note rendered under every row: decisions happen in the native dialog. */
-export const NATIVE_DECISION_NOTE = "Waiting for native Allow / Always / Reject"
-
 /** Label rendered when the origin session could not be resolved. */
 export const UNKNOWN_ORIGIN_LABEL = "Unknown subagent"
 
