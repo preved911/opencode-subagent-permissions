@@ -49,6 +49,11 @@ const tui: TuiPlugin = async (api) => {
 
   const firstSeen = new Map<string, number>()
 
+  // Sessions removed while their requests were pending: the core keeps such
+  // requests in its pending map (session removal does not touch the
+  // permission service), so they are filtered out here by tombstone.
+  const deletedSessions = new Set<string>()
+
   // Plain notification fan-out: permission lifecycle events bump the reactive
   // version signal inside the reactive root below. The TUI runtime tracks and
   // disposes `api.event.on` subscriptions automatically.
@@ -58,7 +63,14 @@ const tui: TuiPlugin = async (api) => {
   }
   api.event.on("permission.asked", notify)
   api.event.on("permission.replied", notify)
-  api.event.on("session.deleted", () => {
+  // A run that ends without replying (abort, interrupt) removes its pending
+  // requests silently — no permission.replied is published. The idle status
+  // transition is the only signal, so refetch on it.
+  api.event.on("session.status", (event) => {
+    if (event.properties.status.type === "idle") notify()
+  })
+  api.event.on("session.deleted", (event) => {
+    deletedSessions.add(event.properties.info.id)
     resolver.invalidate()
     notify()
   })
@@ -94,8 +106,9 @@ const tui: TuiPlugin = async (api) => {
     const displayRequests = createMemo(() => {
       const viewed = viewedSession()
       if (!viewed) return []
-      const all = (pendingRequests() ?? []).filter((request) =>
-        nativeDialogLacksEssence(request.permission),
+      const all = (pendingRequests() ?? []).filter(
+        (request) =>
+          !deletedSessions.has(request.sessionID) && nativeDialogLacksEssence(request.permission),
       )
       // Resolution must run for every pending request BEFORE visibility
       // filtering: visibility requires a resolved chain, so resolving only

@@ -30,6 +30,11 @@ permission types). Types the native dialog already renders fully — bash
 commands, file edits, task spawns, web fetches — are not duplicated in the
 widget.
 
+Stale rows are cleaned up without polling: when a run ends without replying
+(abort, interrupt), the core removes its pending requests silently, so the
+widget refetches on the session's `idle` status transition; requests from
+deleted sessions are filtered out even if the core still lists them.
+
 The panel is informational only. The native OpenCode permission dialog remains
 the only decision surface; the plugin never approves, denies, or rewrites any
 permission decision and never injects anything into the session.
