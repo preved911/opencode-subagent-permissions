@@ -5,7 +5,7 @@ import type { TuiCommand, TuiDialogStack, TuiPlugin, TuiPluginApi, TuiPluginModu
 import type { PermissionRequest } from "@opencode-ai/sdk/v2"
 import { SessionResolver, type SessionLike } from "./shared/session-resolver.ts"
 import { compactRows, detailLines, header } from "./shared/render.ts"
-import { createArgsLookup, selectVisibleRequests, toPendingRequests } from "./shared/panel.ts"
+import { createArgsLookup, nativeDialogLacksEssence, selectVisibleRequests, toPendingRequests } from "./shared/panel.ts"
 
 /**
  * TUI half of the subagent permission overlay plugin.
@@ -94,7 +94,9 @@ const tui: TuiPlugin = async (api) => {
     const displayRequests = createMemo(() => {
       const viewed = viewedSession()
       if (!viewed) return []
-      const all = pendingRequests() ?? []
+      const all = (pendingRequests() ?? []).filter((request) =>
+        nativeDialogLacksEssence(request.permission),
+      )
       // Resolution must run for every pending request BEFORE visibility
       // filtering: visibility requires a resolved chain, so resolving only
       // visible requests deadlocks subagent requests forever.

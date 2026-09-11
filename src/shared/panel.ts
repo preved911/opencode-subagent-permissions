@@ -45,6 +45,31 @@ export type PanelLookups = {
 }
 
 /**
+ * Permission types the native dialog renders with dedicated, informative
+ * bodies (command text, file paths, patterns — see the host's
+ * routes/session/permission.tsx). Every other type falls through to the
+ * generic "Call tool X" fallback, which carries no essence.
+ */
+const NATIVE_DETAILED_PERMISSIONS: ReadonlySet<string> = new Set([
+  "bash",
+  "edit",
+  "read",
+  "glob",
+  "grep",
+  "list",
+  "task",
+  "webfetch",
+  "websearch",
+  "external_directory",
+  "doom_loop",
+])
+
+/** True when the native dialog renders this request without any essence. */
+export function nativeDialogLacksEssence(permission: string): boolean {
+  return !NATIVE_DETAILED_PERMISSIONS.has(permission)
+}
+
+/**
  * Selects the requests visible in the ROOT session view: a request belongs to
  * the panel of the root of its session tree. Requests whose chain has not
  * resolved yet are shown only when they target the viewed session directly.

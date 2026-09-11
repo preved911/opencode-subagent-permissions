@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import {
   createArgsLookup,
+  nativeDialogLacksEssence,
   selectVisibleRequests,
   toPendingRequests,
   type PermissionRequestLike,
@@ -32,6 +33,13 @@ function makeNative(overrides: Partial<PermissionRequestLike> & { id: string }):
 }
 
 describe("panel visibility (UI scoping)", () => {
+  it("flags generic-dialog types (skill, MCP tools) as lacking essence", () => {
+    expect(nativeDialogLacksEssence("skill")).toBe(true)
+    expect(nativeDialogLacksEssence("context7.query-docs")).toBe(true)
+    expect(nativeDialogLacksEssence("bash")).toBe(false)
+    expect(nativeDialogLacksEssence("edit")).toBe(false)
+    expect(nativeDialogLacksEssence("task")).toBe(false)
+  })
   it("shows a pending child request in the root session view", () => {
     const visible = selectVisibleRequests([makeNative({ id: "p1", sessionID: CHILD })], ROOT, chainOf)
     expect(visible).toHaveLength(1)

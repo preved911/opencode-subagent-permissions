@@ -24,6 +24,12 @@ Rows show the requester, the tool, and the request essence in plain form
 payload and the matched patterns are available in the details dialog
 (`Subagent permission requests: details` in the command palette).
 
+The widget lists only requests the native dialog renders **without** their
+essence (the generic "Call tool X" fallback: skills, MCP tools, custom
+permission types). Types the native dialog already renders fully — bash
+commands, file edits, task spawns, web fetches — are not duplicated in the
+widget.
+
 The panel is informational only. The native OpenCode permission dialog remains
 the only decision surface; the plugin never approves, denies, or rewrites any
 permission decision and never injects anything into the session.
